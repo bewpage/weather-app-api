@@ -33,7 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/users")
 public class HomeController {
 
   private final Logger LOGGER = LoggerFactory.getLogger(getClass());
@@ -106,7 +106,7 @@ public class HomeController {
   }
 
   // Reset password
-  @PostMapping("/user/resetPassword")
+  @PostMapping("/resetPassword")
   public ResponseEntity<String> resetPassword(
       HttpServletRequest request, @RequestParam("email") String userEmail) {
     User user = userRepository.findByEmail(userEmail);
