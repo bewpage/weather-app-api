@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  mysql-dev-weather-app:
+    image: mysql:8.0
+    container_name: weather-app
+    cap_add:
+      - SYS_NICE
+    restart: no
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: weather-app-db
+    ports:
+      - "6606:3306"
+    volumes:
+      - db_weather-app:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+volumes:
+  db_weather-app:
+    driver: local
