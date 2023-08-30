@@ -36,6 +36,15 @@ Before proceeding with the standard or Docker Compose setup, make sure to set th
 - `SPRING_PROFILES_ACTIVE=<profile_variable>`
 - `JWT_SECRET_KEY=<create_token_with_util_KeyGenerator>`
 
+### Sensitive Configurations
+
+Create a new file named `application-secret.properties` inside the `resources` folder for sensitive configurations. This file should be added to your `.gitignore`.
+
+```
+OPENWEATHER_API_KEY=<your_openweatherkey>
+SECRET_KEY=<app_key_generated_by_KeyGenerator>
+```
+
 ### Standard Setup
 
 1. **Clone the repository:**
