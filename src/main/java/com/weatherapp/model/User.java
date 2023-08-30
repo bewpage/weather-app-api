@@ -1,12 +1,12 @@
 package com.weatherapp.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.proxy.HibernateProxy;
 
 @Entity
 @Table(name = "users")
@@ -30,35 +30,45 @@ public class User {
 
   private String matchingPassword;
 
+  @Column(name = "enabled")
+  private boolean enabled;
+
   @NotNull
   @NotEmpty
+  @Email
   @Column(name = "email", length = 100, unique = true)
   private String email;
 
   @ManyToMany(fetch = FetchType.EAGER)
   private Set<Role> roles;
-
-  @Override
-  public final boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null) return false;
-    Class<?> oEffectiveClass =
-        o instanceof HibernateProxy
-            ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass()
-            : o.getClass();
-    Class<?> thisEffectiveClass =
-        this instanceof HibernateProxy
-            ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass()
-            : this.getClass();
-    if (thisEffectiveClass != oEffectiveClass) return false;
-    User user = (User) o;
-    return getId() != null && java.util.Objects.equals(getId(), user.getId());
+  public User() {
+    super();
+    this.enabled = false;
   }
 
   @Override
-  public final int hashCode() {
-    return this instanceof HibernateProxy
-        ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
-        : getClass().hashCode();
+  public boolean equals(final Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final User user = (User) obj;
+    if (!getEmail().equals(user.getEmail())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = (prime * result) + ((getEmail() == null) ? 0 : getEmail().hashCode());
+    return result;
   }
 }

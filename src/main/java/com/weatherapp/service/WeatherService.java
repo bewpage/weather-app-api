@@ -1,5 +1,6 @@
 package com.weatherapp.service;
 
+import com.weatherapp.utility.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,15 @@ public class WeatherService {
 
   @Autowired private RestTemplate restTemplate;
 
-  public String fetchWeather(String city) {
+  @Autowired
+  private JwtUtil jwtUtil;
+
+  public String fetchWeather(String city, String jwtToken) {
+
+    // Validate the JWT
+    if (!jwtUtil.isValidToken(jwtToken)) {
+      throw new SecurityException("Invalid JWT token");
+    }
     String apiURL = "https://api.openweathermap.org/data/2.5/weather?q=";
     String units = "&units=metric";
     String url = apiURL + city + "&appid=" + apiKey + units;

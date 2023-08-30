@@ -2,18 +2,20 @@ package com.weatherapp.controller;
 
 import com.weatherapp.service.WeatherService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class WeatherController {
+
   @Autowired private WeatherService weatherService;
 
   @GetMapping(value = "/byCity/{city}")
-  @CrossOrigin(origins = "http://localhost:3000")
-  public String getWeatherByCity(@PathVariable String city) {
-    return weatherService.fetchWeather(city);
+  public String getWeatherByCity(
+      @RequestHeader("Authorization") String authorizationHeader, @PathVariable String city) {
+    String jwtToken = null;
+    if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+      jwtToken = authorizationHeader.substring(7);
+    }
+    return weatherService.fetchWeather(city, jwtToken);
   }
 }
