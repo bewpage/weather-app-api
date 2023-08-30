@@ -1,4 +1,4 @@
-# Weather App using Java/Spring
+# Weather App API - Java/Spring
 
 ## Project Description
 
@@ -40,12 +40,12 @@ Before proceeding with the standard or Docker Compose setup, make sure to set th
 
 1. **Clone the repository:**
    ```
-   git clone https://github.com/bewpage/weather-app-spring.git
+   git clone https://github.com/bewpage/weather-app-api.git
    ```
 
 2. **Navigate to the project directory:**
    ```
-   cd weather-app-spring
+   cd weather-app-api
    ```
 
 3. **Create an OpenWeather API key:**
