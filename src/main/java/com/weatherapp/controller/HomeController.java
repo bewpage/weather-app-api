@@ -5,6 +5,7 @@ import com.weatherapp.dao.UserRepository;
 import com.weatherapp.dto.AuthenticationResponseDto;
 import com.weatherapp.dto.LoginDto;
 import com.weatherapp.dto.SignUpDto;
+import com.weatherapp.dto.UserDto;
 import com.weatherapp.model.Role;
 import com.weatherapp.model.User;
 import com.weatherapp.service.UserService;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -130,6 +132,20 @@ public class HomeController {
       return new ResponseEntity<>("Token not found", HttpStatus.BAD_REQUEST);
     }
     return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
+  }
+
+  @GetMapping("/me")
+  public ResponseEntity<?> getCurrentUser(Principal principal) {
+    User user = userRepository.findByUsername(principal.getName());
+    if (user == null) {
+      return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);
+    }
+
+    UserDto userDto = new UserDto();
+    userDto.setUsername(user.getUsername());
+    userDto.setEmail(user.getEmail());
+
+    return new ResponseEntity<>(userDto, HttpStatus.OK);
   }
 
   // ============== NON-API ============

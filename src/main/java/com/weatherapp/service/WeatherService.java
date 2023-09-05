@@ -1,6 +1,9 @@
 package com.weatherapp.service;
 
+import com.weatherapp.dto.CoordinatesAndCityInfoDto;
+import com.weatherapp.dto.WeatherReportDataDto;
 import com.weatherapp.dto.WeatherReportDto;
+import com.weatherapp.dto.WeatherReportInfoDto;
 import com.weatherapp.exception.WeatherServiceException;
 import com.weatherapp.service.openweather.model.Forecast;
 import com.weatherapp.service.openweather.model.WeatherApiResponse;
@@ -14,6 +17,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +45,8 @@ public class WeatherService implements IWeatherService {
 
     // Step 1: Get Coordinates for City
     logger.info("Fetching coordinates for city: " + city);
-    Map<String, Double> coordinates = localizationService.getLatLong(city);
+    CoordinatesAndCityInfoDto info = localizationService.getLatLong(city);
+    Map<String, Double> coordinates = info.getCoordinates();
     if (coordinates == null || coordinates.isEmpty()) {
       throw new RuntimeException("Failed to fetch coordinates for city: " + city);
     }
@@ -85,19 +90,39 @@ public class WeatherService implements IWeatherService {
 
   @Override
   public WeatherReportDto generateReport(
-      List<String> requestedFields, WeatherApiResponse weatherApiResponse) {
+      List<String> requestedFields,
+      WeatherApiResponse weatherApiResponse,
+      WeatherReportInfoDto reportInfo) {
     WeatherReportDto report = new WeatherReportDto();
+    WeatherReportDataDto weatherReportData = new WeatherReportDataDto();
+    WeatherReportInfoDto weatherReportInfo = new WeatherReportInfoDto();
+
     if (weatherApiResponse != null
         && weatherApiResponse.getList() != null
         && !weatherApiResponse.getList().isEmpty()) {
       List<Forecast> forecasts = weatherApiResponse.getList();
+
+      // Get the date and time for the first and last forecast
+      long firstForecastTime = forecasts.get(0).getDt();
+      long lastForecastTime = forecasts.get(forecasts.size() - 1).getDt();
+
+      // Convert to human-readable date and time
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      String startForecastDateTime = sdf.format(firstForecastTime * 1000);
+      String endForecastDateTime = sdf.format(lastForecastTime * 1000);
+
+      // Set it in the report
+      weatherReportInfo.setStartForecastDateTime(startForecastDateTime);
+      weatherReportInfo.setEndForecastDateTime(endForecastDateTime);
+      weatherReportInfo.setCity(reportInfo.getCity());
+
       if (requestedFields.contains("averageTemperature")) {
         double totalTemperature = 0;
         for (Forecast forecast : forecasts) {
           totalTemperature += forecast.getMain().getTemp();
         }
         double averageTemperature = totalTemperature / forecasts.size();
-        report.setAverageTemperature(averageTemperature);
+        weatherReportData.setAverageTemperature(averageTemperature);
       }
       if (requestedFields.contains("averageHumidity")) {
         double totalHumidity = 0;
@@ -105,7 +130,7 @@ public class WeatherService implements IWeatherService {
           totalHumidity += forecast.getMain().getHumidity();
         }
         double averageHumidity = totalHumidity / forecasts.size();
-        report.setAverageHumidity(averageHumidity);
+        weatherReportData.setAverageHumidity(averageHumidity);
       }
       if (requestedFields.contains("maxTemperature")) {
         double maxTemperature =
@@ -115,7 +140,25 @@ public class WeatherService implements IWeatherService {
             maxTemperature = forecast.getMain().getTemp();
           }
         }
-        report.setMaxTemperature(maxTemperature);
+        weatherReportData.setMaxTemperature(maxTemperature);
+      }
+      if (requestedFields.contains("minTemperature")) {
+        double minTemperature = Double.MAX_VALUE; // Initialize to the largest possible double value
+        for (Forecast forecast : forecasts) {
+          if (forecast.getMain().getTemp() < minTemperature) {
+            minTemperature = forecast.getMain().getTemp();
+          }
+        }
+        weatherReportData.setMinTemperature(minTemperature);
+      }
+      if (requestedFields.contains("maxWindSpeed")) {
+        double maxWindSpeed = Double.MIN_VALUE; // Initialize to the smallest possible double value
+        for (Forecast forecast : forecasts) {
+          if (forecast.getWind().getSpeed() > maxWindSpeed) {
+            maxWindSpeed = forecast.getWind().getSpeed();
+          }
+        }
+        weatherReportData.setMaxWindSpeed(maxWindSpeed);
       }
       if (requestedFields.contains("averageWindSpeed")) {
         double totalWindSpeed = 0;
@@ -123,9 +166,12 @@ public class WeatherService implements IWeatherService {
           totalWindSpeed += forecast.getWind().getSpeed();
         }
         double averageWindSpeed = totalWindSpeed / forecasts.size();
-        report.setAverageWindSpeed(averageWindSpeed);
+        weatherReportData.setAverageWindSpeed(averageWindSpeed);
       }
     }
+
+    report.setWeatherReportData(weatherReportData);
+    report.setWeatherReportInfo(weatherReportInfo);
 
     return report;
   }

@@ -1,6 +1,8 @@
 package com.weatherapp.controller;
 
+import com.weatherapp.dto.CoordinatesAndCityInfoDto;
 import com.weatherapp.dto.WeatherReportDto;
+import com.weatherapp.dto.WeatherReportInfoDto;
 import com.weatherapp.service.LocalizationService;
 import com.weatherapp.service.WeatherService;
 import com.weatherapp.service.openweather.model.WeatherApiResponse;
@@ -24,10 +26,14 @@ public class WeatherController {
 
   @Autowired private LocalizationService localizationService;
 
-  @GetMapping(value = "/byCity/{city}")
+  @GetMapping(value = "/byCity")
   public ResponseEntity<?> getWeatherByCity(
-      @RequestHeader("Authorization") String authorizationHeader, @PathVariable String city, @RequestParam List<String> fields) {
+      @RequestHeader("Authorization") String authorizationHeader,
+      @RequestParam String city,
+      @RequestParam List<String> fields) {
     try {
+      // Fetch coordinates and city info
+      CoordinatesAndCityInfoDto info = localizationService.getLatLong(city);
       String jwtToken = null;
       if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
         jwtToken = authorizationHeader.substring(7);
@@ -35,8 +41,13 @@ public class WeatherController {
       logger.info("Fetching weather for city: " + city);
       WeatherApiResponse weatherApiResponse = weatherService.fetchWeatherByCity(city, jwtToken);
 
+      // Create WeatherReportInfoDto
+      WeatherReportInfoDto reportInfo = new WeatherReportInfoDto();
+      reportInfo.setCity(info.getCity());
+
       // Generate the report based on the user's selected fields
-      WeatherReportDto weatherReport = weatherService.generateReport(fields, weatherApiResponse);
+      WeatherReportDto weatherReport =
+          weatherService.generateReport(fields, weatherApiResponse, reportInfo);
 
       return new ResponseEntity<>(weatherReport, HttpStatus.OK);
     } catch (Exception e) {
@@ -65,8 +76,15 @@ public class WeatherController {
     if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
       jwtToken = authorizationHeader.substring(7);
     }
-    Map<String, Double> coordinates = localizationService.getLatLong(city);
-    return weatherService.fetchWeatherByCoordinates(
-        coordinates.get("lat"), coordinates.get("lon"), jwtToken);
+    CoordinatesAndCityInfoDto info = localizationService.getLatLong(city);
+    Map<String, Double> coordinates = info.getCoordinates();
+    Double lat = coordinates.get("lat");
+    Double lon = coordinates.get("lon");
+    return weatherService.fetchWeatherByCoordinates(lat, lon, jwtToken);
+  }
+
+  @GetMapping(value = "/searchCity")
+  public List<Map<String, String>> searchCity(@RequestParam String city) {
+    return localizationService.searchCity(city);
   }
 }

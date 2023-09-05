@@ -25,7 +25,7 @@ public class OSMResponseDto {
   private Double longitude;
 
   @JsonProperty("display_name")
-  private String display_name;
+  private String displayName;
 
   @JsonProperty("type")
   private String type;

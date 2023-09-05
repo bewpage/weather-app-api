@@ -8,10 +8,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class WeatherReportDto {
-  private Double averageTemperature;
-  private Double maxTemperature;
-  private Double minTemperature;
-  private Double averageHumidity;
-  private Double maxSpeed;
-  private Double averageWindSpeed;
+  private WeatherReportDataDto weatherReportData;
+  private WeatherReportInfoDto weatherReportInfo;
 }

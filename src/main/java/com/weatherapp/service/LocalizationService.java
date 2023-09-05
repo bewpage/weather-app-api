@@ -1,5 +1,6 @@
 package com.weatherapp.service;
 
+import com.weatherapp.dto.CoordinatesAndCityInfoDto;
 import com.weatherapp.dto.OSMResponseDto;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class LocalizationService implements ILocalizationService {
     if (response != null) {
       for (OSMResponseDto result : response) {
         Map<String, String> cityData = new HashMap<>();
-        cityData.put("city", result.getDisplay_name());
+        cityData.put("city", result.getDisplayName());
         cityData.put("lat", String.valueOf(result.getLatitude()));
         cityData.put("lon", String.valueOf(result.getLongitude()));
         searchResults.add(cityData);
@@ -51,7 +52,7 @@ public class LocalizationService implements ILocalizationService {
 
   @RateLimiter(name = "getLatLong", fallbackMethod = "getLatLongFallback")
   @Override
-  public Map<String, Double> getLatLong(String city) {
+  public CoordinatesAndCityInfoDto getLatLong(String city) {
     String url = "https://nominatim.openstreetmap.org/search?q=" + city + "&format=json";
     String yourApplicationName = "WeatherApp v1.0 (bewpage)";
 
@@ -62,6 +63,7 @@ public class LocalizationService implements ILocalizationService {
     HttpEntity<String> entity = new HttpEntity<>(headers);
 
     Map<String, Double> coordinates = new HashMap<>();
+    CoordinatesAndCityInfoDto info = new CoordinatesAndCityInfoDto();
 
     try {
       // Make the API call
@@ -71,6 +73,8 @@ public class LocalizationService implements ILocalizationService {
       if (response != null && response.length > 0) {
         coordinates.put("lat", response[0].getLatitude());
         coordinates.put("lon", response[0].getLongitude());
+        info.setCity(response[0].getDisplayName());
+        info.setCoordinates(coordinates);
       } else {
         throw new Exception("No coordinates found for city: " + city);
       }
@@ -81,12 +85,23 @@ public class LocalizationService implements ILocalizationService {
       throw new RuntimeException("Failed to fetch coordinates: " + e.getMessage());
     }
 
-    return coordinates;
+    return info;
   }
 
   @Override
-  public Map<String, Double> getLatLongFallback(String city, Throwable t) {
+  public CoordinatesAndCityInfoDto getLatLongFallback(String city, Throwable t) {
     logger.error("Rate limit exceeded for city: {}", city, t);
-    return Collections.emptyMap();
+    CoordinatesAndCityInfoDto info = new CoordinatesAndCityInfoDto();
+    // Default Coordinates
+    Map<String, Double> defaultCoordinates = new HashMap<>();
+    defaultCoordinates.put("lat", 0.0);
+    defaultCoordinates.put("lon", 0.0);
+
+    // Default City Name
+    String defaultCityName = "Unknown";
+
+    info.setCoordinates(defaultCoordinates);
+    info.setCity(defaultCityName);
+    return info;
   }
 }

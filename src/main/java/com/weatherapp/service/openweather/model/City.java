@@ -1,5 +1,6 @@
 package com.weatherapp.service.openweather.model;
 
+import com.weatherapp.validation.ValidCityName;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,6 +9,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class City {
-  private String name;
+  @ValidCityName private String name;
   private Coordinates coordinates;
 }

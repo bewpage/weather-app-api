@@ -12,6 +12,6 @@ import java.util.List;
 public class Forecast {
     private Main main;
     private List<Weather> weather;
-    private String dt_txt;
+    private Long dt;
     private Wind wind;
 }
