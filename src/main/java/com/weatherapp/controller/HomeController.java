@@ -5,6 +5,7 @@ import com.weatherapp.dao.UserRepository;
 import com.weatherapp.dto.AuthenticationResponseDto;
 import com.weatherapp.dto.LoginDto;
 import com.weatherapp.dto.SignUpDto;
+import com.weatherapp.dto.UserDto;
 import com.weatherapp.model.Role;
 import com.weatherapp.model.User;
 import com.weatherapp.service.UserService;
@@ -12,10 +13,11 @@ import com.weatherapp.utility.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +33,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.GrantedAuthority;
 
 @RestController
 @RequestMapping("/api/v1/users")
 public class HomeController {
 
-  private final Logger LOGGER = LoggerFactory.getLogger(getClass());
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   @Autowired private AuthenticationManager authenticationManager;
   @Autowired private UserRepository userRepository;
   @Autowired private UserService userService;
@@ -55,8 +58,14 @@ public class HomeController {
                 loginDto.getUsername(), loginDto.getPassword()));
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
+    // Extract roles from the authentication object
+    List<String> roles =
+        authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
+
     // Generate JWT token
-    String jwtToken = jwtUtil.generateToken(loginDto.getUsername());
+    String jwtToken = jwtUtil.generateToken(loginDto.getUsername(), roles);
 
     // Create a response object
     AuthenticationResponseDto response =
@@ -68,7 +77,7 @@ public class HomeController {
   @PostMapping("/signup")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpDto signUpDto) {
     // checking for username exists in a database
-    LOGGER.debug("Registering user account with information: {}", signUpDto);
+    logger.debug("Registering user account with information: {}", signUpDto);
     if (userRepository.existsByUsername(signUpDto.getUsername())) {
       return new ResponseEntity<>("Username is already taken", HttpStatus.BAD_REQUEST);
     }
@@ -123,6 +132,20 @@ public class HomeController {
       return new ResponseEntity<>("Token not found", HttpStatus.BAD_REQUEST);
     }
     return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
+  }
+
+  @GetMapping("/me")
+  public ResponseEntity<?> getCurrentUser(Principal principal) {
+    User user = userRepository.findByUsername(principal.getName());
+    if (user == null) {
+      return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);
+    }
+
+    UserDto userDto = new UserDto();
+    userDto.setUsername(user.getUsername());
+    userDto.setEmail(user.getEmail());
+
+    return new ResponseEntity<>(userDto, HttpStatus.OK);
   }
 
   // ============== NON-API ============

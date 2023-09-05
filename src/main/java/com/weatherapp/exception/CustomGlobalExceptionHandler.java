@@ -1,5 +1,6 @@
 package com.weatherapp.exception;
 
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class CustomGlobalExceptionHandler {
 
+  //  This type of exception is thrown when a method argument annotated with validation constraints
+  // (such as @Valid) fails validation.
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Map<String, String>> handleMethodArgumentNotValidException(
       MethodArgumentNotValidException ex) {
@@ -31,6 +34,8 @@ public class CustomGlobalExceptionHandler {
     return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
   }
 
+  // This exceptions is thrown when a method annotated with constraint validation annotations
+  // violates those constraints.
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<Map<String, String>> handleConstraintViolationException(
       ConstraintViolationException ex) {

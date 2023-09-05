@@ -1,6 +1,7 @@
 package com.weatherapp.config;
 
 import com.weatherapp.utility.JwtUtil;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,15 +26,25 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     final String authorizationHeader = request.getHeader("Authorization");
     String username = null;
     String jwt = null;
-    if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-      jwt = authorizationHeader.substring(7);
-      username = jwtUtil.getUsernameFromToken(jwt);
+
+    try {
+      if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+        jwt = authorizationHeader.substring(7);
+        username = jwtUtil.getUsernameFromToken(jwt);
+      }
+      if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
+            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+        SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+      }
+    } catch (MalformedJwtException e) {
+      logger.error("Invalid or malformed JWT token");
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      response.setContentType("application/json");
+      response.getWriter().write("{\"error\": \"Invalid or malformed JWT token\"}");
+      return;
     }
-    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
-          new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
-      SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
-    }
+
     filterChain.doFilter(request, response);
   }
 }
