@@ -2,22 +2,16 @@ package com.weatherapp.controller;
 
 import com.weatherapp.dao.RoleRepository;
 import com.weatherapp.dao.UserRepository;
-import com.weatherapp.dto.AuthenticationResponseDto;
-import com.weatherapp.dto.LoginDto;
-import com.weatherapp.dto.SignUpDto;
-import com.weatherapp.dto.UserDto;
+import com.weatherapp.dto.*;
 import com.weatherapp.model.Role;
 import com.weatherapp.model.User;
 import com.weatherapp.service.UserService;
 import com.weatherapp.utility.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-
 import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +22,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.GrantedAuthority;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -52,11 +47,19 @@ public class HomeController {
 
   @PostMapping("/login")
   public ResponseEntity<?> authenticateUser(@RequestBody LoginDto loginDto) {
-    Authentication authentication =
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginDto.getUsername(), loginDto.getPassword()));
-    SecurityContextHolder.getContext().setAuthentication(authentication);
+    Authentication authentication;
+    try {
+      logger.debug("Authenticating user with information: {}", loginDto);
+      authentication =
+          authenticationManager.authenticate(
+              new UsernamePasswordAuthenticationToken(
+                  loginDto.getUsername(), loginDto.getPassword()));
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+    } catch (BadCredentialsException e) {
+      logger.error("Error authenticating user: {}", e.getMessage());
+      ErrorResponseDto errorResponse = new ErrorResponseDto("Invalid username or password");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
 
     // Extract roles from the authentication object
     List<String> roles =
@@ -79,12 +82,14 @@ public class HomeController {
     // checking for username exists in a database
     logger.debug("Registering user account with information: {}", signUpDto);
     if (userRepository.existsByUsername(signUpDto.getUsername())) {
-      return new ResponseEntity<>("Username is already taken", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("Username is already taken");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     // checking for email exists in a database
     if (userRepository.existsByEmail(signUpDto.getEmail())) {
-      return new ResponseEntity<>("Email is already taken", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("Email is already taken");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     // creating user object
@@ -95,7 +100,8 @@ public class HomeController {
 
     Optional<Role> optionalRole = roleRepository.findByName("ROLE_ADMIN");
     if (!optionalRole.isPresent()) {
-      return new ResponseEntity<>("Role not found", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("Role not found");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     } else {
       user.setRoles(Collections.singleton(optionalRole.get()));
     }
@@ -105,7 +111,7 @@ public class HomeController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
+  public ResponseEntity<String> logout(HttpServletRequest request) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication != null) {
       SecurityContextHolder.getContext().setAuthentication(null);
@@ -116,11 +122,12 @@ public class HomeController {
 
   // Reset password
   @PostMapping("/resetPassword")
-  public ResponseEntity<String> resetPassword(
+  public ResponseEntity<?> resetPassword(
       HttpServletRequest request, @RequestParam("email") String userEmail) {
     User user = userRepository.findByEmail(userEmail);
     if (user == null) {
-      return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("User not found");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     } else {
       String token = UUID.randomUUID().toString();
       userService.createPasswordResetTokenForUser(user, token);
@@ -129,7 +136,8 @@ public class HomeController {
     }
     String token = request.getHeader("Authorization");
     if (token == null) {
-      return new ResponseEntity<>("Token not found", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("Token not found");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
     return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
   }
@@ -138,7 +146,8 @@ public class HomeController {
   public ResponseEntity<?> getCurrentUser(Principal principal) {
     User user = userRepository.findByUsername(principal.getName());
     if (user == null) {
-      return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);
+      ErrorResponseDto errorResponse = new ErrorResponseDto("User not found");
+      return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     UserDto userDto = new UserDto();
