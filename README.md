@@ -29,16 +29,17 @@ navigated with the included Swagger documentation.
 Before proceeding with the standard or Docker Compose setup, make sure to set the following environment variables:
 
 - for `SPRING_PROFILES_ACTIVE` it is possible to use `dev` or `prod` profile, depending on the environment you want to
-   run the application,
+  run the application,
 - for `JWT_SECRET_KEY` it is possible to use the `KeyGenerator` utility class to generate a secret key for the JWT
-   token. (see `src/main/java/com/bewpage/weatherapp/util/KeyGenerator.java`)
+  token. (see `src/main/java/com/bewpage/weatherapp/util/KeyGenerator.java`)
 
 - `SPRING_PROFILES_ACTIVE=<profile_variable>`
 - `JWT_SECRET_KEY=<create_token_with_util_KeyGenerator>`
 
 ### Sensitive Configurations
 
-Create a new file named `application-secret.properties` inside the `resources` folder for sensitive configurations. This file should be added to your `.gitignore`.
+Create a new file named `application-secret.properties` inside the `resources` folder for sensitive configurations. This
+file should be added to your `.gitignore`.
 
 ```
 OPENWEATHER_API_KEY=<your_openweatherkey>
@@ -100,6 +101,17 @@ The application should now be running on [http://localhost:8080](http://localhos
 
 - After starting the application, visit [Swagger UI](http://localhost:8080/swagger-ui.html) to see the available RESTful
   endpoints and to test them interactively.
+
+## Error Handling
+
+- The API has built-in generic error handling.
+- Errors are returned in the following JSON format:
+
+  ```json
+  {
+    "errorMessages": "Description of the error"
+  }
+  ```
 
 ## License
 
